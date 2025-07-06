@@ -1,0 +1,28 @@
+name: PG ETL Pipeline
+
+on:
+  schedule:
+    - cron: '0 2 * * *'   # Runs daily at 2 AM UTC
+  workflow_dispatch:       # Allows you to trigger manually from GitHub
+
+jobs:
+  run-etl:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Python dependencies
+        run: pip install pandas requests
+
+      - name: Run ETL script
+        env:
+          SUPABASE_API_URL: ${{ secrets.SUPABASE_API_URL }}
+          SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
+        run: python pg_etl.py

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>BR Reddy Hostel</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { background: #222; color: white; font-family: sans-serif; padding: 20px; }
+    input, button { display: block; margin: 10px 0; padding: 10px; width: 300px; }
+    #form-section { display: none; }
+  </style>
+</head>
+<body>
+
+  <h2>BR Reddy Boys Hostel Portal</h2>
+
+  <div id="auth-section">
+    <input id="email" type="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <button onclick="handleAuth()">Login / Signup</button>
+  </div>
+
+  <div id="form-section">
+    <h3>Student Registration</h3>
+    <input id="full_name" placeholder="Full Name">
+    <input id="contact_number" placeholder="Contact Number">
+    <input id="room_number" placeholder="Room Number">
+    <input id="gmail_address" placeholder="Gmail Address">
+    <input id="college_name" placeholder="College Name">
+    Aadhaar Upload: <input type="file" id="aadhaar">
+    <button onclick="submitForm()">Submit</button>
+  </div>
+
+  <script>
+    // ✅ FIRST: Create Supabase client
+    const supabase = window.supabase.createClient(
+      'https://wdshpnyxruuvchxkmndh.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indkc2hwbnl4cnV1dmNoeGttbmRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2NTQxMjEsImV4cCI6MjA2NzIzMDEyMX0.U2ObVljcxev5q5-yzsBCP0hVv5EAeunN85O3wnmd4s4'
+    );
+
+    // ✅ Auth flow
+    async function handleAuth() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        const signUp = await supabase.auth.signUp({ email, password });
+        if (signUp.error) return alert("Signup failed: " + signUp.error.message);
+        alert("Signup successful! Check your email.");
+      } else {
+        alert("Login successful!");
+        document.getElementById("auth-section").style.display = "none";
+        document.getElementById("form-section").style.display = "block";
+      }
+    }
+
+    async function submitForm() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return alert("You must be logged in.");
+
+      const aadhaarFile = document.getElementById("aadhaar").files[0];
+      const filePath = `${user.id}/${aadhaarFile.name}`;
+
+      const { error: uploadError } = await supabase
+        .storage
+        .from("aadhaar-uploads")
+        .upload(filePath, aadhaarFile);
+
+      if (uploadError) return alert("Aadhaar upload failed: " + uploadError.message);
+
+      const { error: insertError } = await supabase
+        .from("students")
+        .insert([{
+          full_name: document.getElementById("full_name").value,
+          contact_number: document.getElementById("contact_number").value,
+          room_number: document.getElementById("room_number").value,
+          gmail_address: document.getElementById("gmail_address").value,
+          college_name: document.getElementById("college_name").value,
+          aadhaar_url: filePath
+        }]);
+
+      if (insertError) return alert("Data insert failed: " + insertError.message);
+
+      alert("Registration successful!");
+    }
+  </script>
+
+</body>
+</html>
